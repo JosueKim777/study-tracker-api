@@ -1,5 +1,7 @@
 // src/tasks.ts
 
+import { ValidationError, NotFoundError } from './errors';
+
 export type TaskStatus = 'todo' | 'in_progress' | 'done';
 
 export interface Task {
@@ -23,12 +25,12 @@ export function clearTasks(): void {
 // Create a new task
 export function createTask(title: unknown, course?: string, dueDate?: string): Task {
   if (typeof title !== 'string' || title.trim() === '') {
-    throw new Error('Title is required and must be a string');
+    throw new ValidationError('Title is required and must be a string');
   }
 
   const trimmedTitle = title.trim();
   if (trimmedTitle.length > 100) {
-    throw new Error('Title cannot exceed 100 characters');
+    throw new ValidationError('Title cannot exceed 100 characters');
   }
 
   const newTask: Task = {
@@ -52,7 +54,7 @@ export function listTasks(): Task[] {
 export function getTask(id: number): Task {
   const task = tasks.find(t => t.id === id);
   if (!task) {
-    throw new Error('Task not found');
+    throw new NotFoundError('Task not found');
   }
   return { ...task };
 }
@@ -61,7 +63,7 @@ export function getTask(id: number): Task {
 export function deleteTask(id: number): void {
   const index = tasks.findIndex(t => t.id === id);
   if (index === -1) {
-    throw new Error('Task not found');
+    throw new NotFoundError('Task not found');
   }
   tasks.splice(index, 1);
 }

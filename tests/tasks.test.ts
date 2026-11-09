@@ -1,8 +1,9 @@
 // tests/tasks.test.ts
 
 import { createTask, clearTasks, listTasks, getTask, deleteTask } from '../src/tasks';
+import { ValidationError, NotFoundError } from '../src/errors';
 
-describe('createTask', () => {
+describe('Tasks Core Logic', () => {
   beforeEach(() => {
     clearTasks();
   });
@@ -30,26 +31,24 @@ describe('createTask', () => {
     expect(task.title).toBe('Read notes');
   });
 
-  test('Empty string, whitespace-only string, and titles exceeding 100 characters throw an error', () => {
-    expect(() => createTask('')).toThrow('Title is required and must be a string');
-    expect(() => createTask('   ')).toThrow('Title is required and must be a string');
+  test('Empty string, whitespace-only string, and titles exceeding 100 characters throw ValidationError', () => {
+    expect(() => createTask('')).toThrow(ValidationError);
+    expect(() => createTask('   ')).toThrow(ValidationError);
     
     const longTitle = 'a'.repeat(101);
-    expect(() => createTask(longTitle)).toThrow('Title cannot exceed 100 characters');
+    expect(() => createTask(longTitle)).toThrow(ValidationError);
   });
 
   test('Boundary cases for 100 characters title limit work correctly', () => {
-    // Exactly 100 characters should pass
     const exactTitle = 'a'.repeat(100);
     expect(createTask(exactTitle).title).toBe(exactTitle);
 
-    // 102 characters total, but trimmed length is 100 (after stripping leading/trailing spaces) should pass
     const paddedExactTitle = ' ' + 'a'.repeat(100) + ' ';
     expect(createTask(paddedExactTitle).title).toBe(exactTitle);
   });
 
-  test('Passing non-string types like numbers throws an error', () => {
-    expect(() => createTask(123)).toThrow('Title is required and must be a string');
+  test('Passing non-string types like numbers throws ValidationError', () => {
+    expect(() => createTask(123)).toThrow(ValidationError);
   });
 
   test('Optional course and dueDate fields are stored correctly', () => {
@@ -62,13 +61,6 @@ describe('createTask', () => {
       dueDate: '2026-11-20'
     });
   });
-});
-
-describe('listTasks, getTask and deleteTask', () => {
-  beforeEach(() => {
-    clearTasks();
-  });
-
 
   test('listTasks returns empty array initially and all tasks when created', () => {
     expect(listTasks()).toEqual([]);
@@ -86,19 +78,19 @@ describe('listTasks, getTask and deleteTask', () => {
     expect(originalTask.title).toBe('Task 1');
   });
 
-  test('getTask retrieves existing task or throws when missing', () => {
+  test('getTask retrieves existing task or throws NotFoundError when missing', () => {
     createTask('Task 1');
     const task = getTask(1);
     expect(task.title).toBe('Task 1');
 
-    expect(() => getTask(999)).toThrow('Task not found');
+    expect(() => getTask(999)).toThrow(NotFoundError);
   });
 
-  test('deleteTask removes task successfully or throws when missing', () => {
+  test('deleteTask removes task successfully or throws NotFoundError when missing', () => {
     createTask('Task 1');
     deleteTask(1);
-    expect(() => getTask(1)).toThrow('Task not found');
+    expect(() => getTask(1)).toThrow(NotFoundError);
 
-    expect(() => deleteTask(999)).toThrow('Task not found');
+    expect(() => deleteTask(999)).toThrow(NotFoundError);
   });
 });

@@ -1,7 +1,8 @@
 // src/app.ts
 
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { createTask, listTasks, getTask, deleteTask } from './tasks';
+import { ValidationError, NotFoundError } from './errors';
 
 // app.ts is only responsible for creating the app, not for listening to ports.
 // This allows tests to pass the app directly to supertest without starting an actual server.
@@ -10,10 +11,11 @@ export const app = express();
 app.use(express.json());
 
 // Helper function to parse and validate ID following the DRY principle
-function parseId(idStr: string): number | null {
+// Throws ValidationError directly if format is invalid
+function parseId(idStr: string): number {
   const num = Number(idStr);
   if (!Number.isInteger(num) || num <= 0) {
-    return null;
+    throw new ValidationError('Invalid task ID format');
   }
   return num;
 }
@@ -24,14 +26,9 @@ app.get('/health', (_req: Request, res: Response) => {
 
 // POST /tasks route
 app.post('/tasks', (req: Request, res: Response) => {
-  try {
-    const { title, course, dueDate } = req.body;
-    const task = createTask(title, course, dueDate);
-    res.status(201).json(task);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Invalid request';
-    res.status(400).json({ error: message });
-  }
+  const { title, course, dueDate } = req.body;
+  const task = createTask(title, course, dueDate);
+  res.status(201).json(task);
 });
 
 // GET /tasks route
@@ -43,33 +40,29 @@ app.get('/tasks', (_req: Request, res: Response) => {
 // GET /tasks/:id route
 app.get('/tasks/:id', (req: Request, res: Response) => {
   const idNum = parseId(req.params.id);
-  if (idNum === null) {
-    res.status(400).json({ error: 'Invalid task ID format' });
-    return;
-  }
-
-  try {
-    const task = getTask(idNum);
-    res.status(200).json(task);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Not found';
-    res.status(404).json({ error: message });
-  }
+  const task = getTask(idNum);
+  res.status(200).json(task);
 });
 
 // DELETE /tasks/:id route
 app.delete('/tasks/:id', (req: Request, res: Response) => {
   const idNum = parseId(req.params.id);
-  if (idNum === null) {
-    res.status(400).json({ error: 'Invalid task ID format' });
+  deleteTask(idNum);
+  res.status(204).send();
+});
+
+// Centralized error handling middleware (must have all 4 parameters for Express to recognize it as error middleware)
+app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  if (err instanceof ValidationError) {
+    res.status(400).json({ error: err.message });
     return;
   }
-
-  try {
-    deleteTask(idNum);
-    res.status(204).send();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Not found';
-    res.status(404).json({ error: message });
+  if (err instanceof NotFoundError) {
+    res.status(404).json({ error: err.message });
+    return;
   }
+  // Log unexpected internal errors securely, and hide implementation details from client
+  console.error('Unhandled Server Error:', err);
+  res.status(500).json({ error: 'Internal Server Error' });
 });
+
