@@ -40,10 +40,9 @@ A task looks like:
 | GET | `/health` | 200 `{ "status": "ok" }` | |
 | POST | `/tasks` | 201 created task | 400 invalid body |
 | GET | `/tasks` | 200 list of tasks (supports `?status=` and `?course=`) | 400 invalid `status` filter |
-| GET | `/tasks/:id` | 200 task | 404 not found |
-| PATCH | `/tasks/:id` | 200 updated task | 400 invalid body, 404 not found |
-| DELETE | `/tasks/:id` | 204 no content | 404 not found |
-
+| GET | `/tasks/:id` | 200 task | 400 invalid id, 404 not found |
+| PATCH | `/tasks/:id` | 200 updated task | 400 invalid id or body, 404 not found |
+| DELETE | `/tasks/:id` | 204 no content | 400 invalid id, 404 not found |
 ### Validation rules
 
 - `title`: required on create, a non-empty string of at most 100 characters

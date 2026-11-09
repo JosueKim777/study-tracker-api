@@ -40,5 +40,28 @@ export function createTask(title: unknown, course?: string, dueDate?: string): T
   };
 
   tasks.push(newTask);
-  return newTask;
+  return { ...newTask };
+}
+
+// Return a deep copy array of tasks to maintain strict encapsulation
+export function listTasks(): Task[] {
+  return tasks.map(t => ({ ...t }));
+}
+
+// Find and return a task copy by its ID
+export function getTask(id: number): Task {
+  const task = tasks.find(t => t.id === id);
+  if (!task) {
+    throw new Error('Task not found');
+  }
+  return { ...task };
+}
+
+// Delete a task by its ID
+export function deleteTask(id: number): void {
+  const index = tasks.findIndex(t => t.id === id);
+  if (index === -1) {
+    throw new Error('Task not found');
+  }
+  tasks.splice(index, 1);
 }

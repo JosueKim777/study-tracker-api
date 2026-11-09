@@ -1,6 +1,6 @@
 // tests/tasks.test.ts
 
-import { createTask, clearTasks } from '../src/tasks';
+import { createTask, clearTasks, listTasks, getTask, deleteTask } from '../src/tasks';
 
 describe('createTask', () => {
   beforeEach(() => {
@@ -61,5 +61,44 @@ describe('createTask', () => {
       status: 'todo',
       dueDate: '2026-11-20'
     });
+  });
+});
+
+describe('listTasks, getTask and deleteTask', () => {
+  beforeEach(() => {
+    clearTasks();
+  });
+
+
+  test('listTasks returns empty array initially and all tasks when created', () => {
+    expect(listTasks()).toEqual([]);
+    createTask('Task 1');
+    createTask('Task 2');
+    expect(listTasks().length).toBe(2);
+  });
+
+  test('listTasks returns a copy preventing direct internal mutation', () => {
+    createTask('Task 1');
+    const tasksCopy = listTasks();
+    tasksCopy[0].title = 'Hacked Title';
+
+    const originalTask = getTask(1);
+    expect(originalTask.title).toBe('Task 1');
+  });
+
+  test('getTask retrieves existing task or throws when missing', () => {
+    createTask('Task 1');
+    const task = getTask(1);
+    expect(task.title).toBe('Task 1');
+
+    expect(() => getTask(999)).toThrow('Task not found');
+  });
+
+  test('deleteTask removes task successfully or throws when missing', () => {
+    createTask('Task 1');
+    deleteTask(1);
+    expect(() => getTask(1)).toThrow('Task not found');
+
+    expect(() => deleteTask(999)).toThrow('Task not found');
   });
 });

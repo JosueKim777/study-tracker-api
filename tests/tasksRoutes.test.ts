@@ -69,3 +69,56 @@ describe('POST /tasks', () => {
     expect(typeof response.body.error).toBe('string');
   });
 });
+
+describe('GET /tasks and GET /tasks/:id', () => {
+  test('GET /tasks returns 200 and array of tasks', async () => {
+    await request(app).post('/tasks').send({ title: 'Task 1' });
+    const response = await request(app).get('/tasks');
+
+    expect(response.status).toBe(200);
+    expect(response.body.length).toBe(1);
+    expect(response.body[0].title).toBe('Task 1');
+  });
+
+  test('GET /tasks/:id returns 200 for valid id, 404 for missing id, and 400 for invalid formats', async () => {
+    await request(app).post('/tasks').send({ title: 'Task 1' });
+
+    // Valid
+    const resValid = await request(app).get('/tasks/1');
+    expect(resValid.status).toBe(200);
+    expect(resValid.body.title).toBe('Task 1');
+
+    // Not found
+    const resNotFound = await request(app).get('/tasks/999');
+    expect(resNotFound.status).toBe(404);
+    expect(typeof resNotFound.body.error).toBe('string');
+
+    // Invalid formats (abc, decimals, negative)
+    for (const invalidId of ['abc', '1.5', '-1', '0']) {
+      const resInvalid = await request(app).get(`/tasks/${invalidId}`);
+      expect(resInvalid.status).toBe(400);
+      expect(typeof resInvalid.body.error).toBe('string');
+    }
+  });
+});
+
+describe('DELETE /tasks/:id', () => {
+  test('DELETE /tasks/:id returns 204 on success and 404 when missing', async () => {
+    await request(app).post('/tasks').send({ title: 'Task 1' });
+
+    const resDelete = await request(app).delete('/tasks/1');
+    expect(resDelete.status).toBe(204);
+
+    // Verify task is gone
+    const resGet = await request(app).get('/tasks/1');
+    expect(resGet.status).toBe(404);
+
+    // Delete non-existent
+    const resDeleteMissing = await request(app).delete('/tasks/999');
+    expect(resDeleteMissing.status).toBe(404);
+
+    // Invalid format
+    const resInvalid = await request(app).delete('/tasks/abc');
+    expect(resInvalid.status).toBe(400);
+  });
+});
