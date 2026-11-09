@@ -42,14 +42,21 @@ describe('POST /tasks', () => {
   });
 
   test('Should return 400 when title is missing, empty, or not a string', async () => {
+    const resMissing = await request(app).post('/tasks').send({});
+    expect(resMissing.status).toBe(400);
+    expect(typeof resMissing.body.error).toBe('string');
+
     const resEmpty = await request(app).post('/tasks').send({ title: '' });
     expect(resEmpty.status).toBe(400);
+    expect(typeof resEmpty.body.error).toBe('string');
 
     const resWhitespace = await request(app).post('/tasks').send({ title: '   ' });
     expect(resWhitespace.status).toBe(400);
+    expect(typeof resWhitespace.body.error).toBe('string');
 
     const resNumber = await request(app).post('/tasks').send({ title: 123 });
     expect(resNumber.status).toBe(400);
+    expect(typeof resNumber.body.error).toBe('string');
   });
 
   test('Should return 400 when title exceeds 100 characters', async () => {
@@ -59,5 +66,6 @@ describe('POST /tasks', () => {
       .send({ title: longTitle });
 
     expect(response.status).toBe(400);
+    expect(typeof response.body.error).toBe('string');
   });
 });
