@@ -1,5 +1,5 @@
 # Study Tracker API
-
+![CI](https://github.com/JosueKim777/study-tracker-api/actions/workflows/ci.yml/badge.svg)
 A small REST API for tracking study tasks (assignments, readings, exam prep), built with **TypeScript**, **Express** and **Jest**, with automated checks on every push via **GitHub Actions**.
 
 ## Getting started
