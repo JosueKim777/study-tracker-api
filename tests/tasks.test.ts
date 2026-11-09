@@ -167,3 +167,66 @@ describe('updateTask', () => {
     });
   });
 });
+
+describe('dueDate validation', () => {
+  beforeEach(() => {
+    clearTasks();
+  });
+
+  test('accepts real calendar dates, including leap days', () => {
+    expect(createTask('A', undefined, '2026-11-20').dueDate).toBe('2026-11-20');
+    expect(createTask('B', undefined, '2028-02-29').dueDate).toBe('2028-02-29');
+    expect(createTask('C', undefined, '2026-12-31').dueDate).toBe('2026-12-31');
+  });
+
+  test('rejects dates that do not exist', () => {
+    for (const bad of ['2026-02-29', '2026-02-30', '2026-04-31', '2026-13-01', '2026-00-10', '2026-01-00']) {
+      expect(() => createTask('Task', undefined, bad)).toThrow('Due date is not a real calendar date');
+    }
+  });
+
+  test('rejects the wrong format', () => {
+    for (const bad of ['2026-1-5', '20261120', '20-11-2026', '2026/11/20', 'tomorrow', '', ' 2026-11-20']) {
+      expect(() => createTask('Task', undefined, bad)).toThrow('Due date must be in YYYY-MM-DD format');
+    }
+  });
+
+  test('rejects non-string values', () => {
+    expect(() => createTask('Task', undefined, 20261120)).toThrow(ValidationError);
+    expect(() => createTask('Task', undefined, null)).toThrow(ValidationError);
+  });
+
+  test('updateTask uses the same date rules and can clear the date with null', () => {
+    createTask('Task', undefined, '2026-11-20');
+    expect(() => updateTask(1, { dueDate: '2026-02-30' })).toThrow(ValidationError);
+    expect(getTask(1).dueDate).toBe('2026-11-20');
+
+    expect(updateTask(1, { dueDate: null }).dueDate).toBeUndefined();
+  });
+});
+
+describe('course validation', () => {
+  beforeEach(() => {
+    clearTasks();
+  });
+
+  test('trims and upper-cases the course code', () => {
+    expect(createTask('Task', '  comp2521 ').course).toBe('COMP2521');
+  });
+
+  test('accepts exactly 20 characters and rejects 21', () => {
+    expect(createTask('Task', 'A'.repeat(20)).course).toBe('A'.repeat(20));
+    expect(() => createTask('Task', 'A'.repeat(21))).toThrow('Course cannot exceed 20 characters');
+  });
+
+  test('rejects empty, whitespace-only and non-string courses', () => {
+    expect(() => createTask('Task', '')).toThrow(ValidationError);
+    expect(() => createTask('Task', '   ')).toThrow(ValidationError);
+    expect(() => createTask('Task', 2521)).toThrow(ValidationError);
+  });
+
+  test('updateTask can clear the course with null', () => {
+    createTask('Task', 'COMP2521');
+    expect(updateTask(1, { course: null }).course).toBeUndefined();
+  });
+});

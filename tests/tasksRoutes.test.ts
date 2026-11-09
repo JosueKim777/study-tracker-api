@@ -156,3 +156,30 @@ describe('PATCH /tasks/:id', () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe('dueDate and course validation over HTTP', () => {
+  test('POST /tasks returns 400 for an impossible date', async () => {
+    const res = await request(app).post('/tasks').send({ title: 'Task', dueDate: '2026-02-30' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Due date is not a real calendar date');
+  });
+
+  test('POST /tasks returns 400 for a non-string course', async () => {
+    const res = await request(app).post('/tasks').send({ title: 'Task', course: 123 });
+    expect(res.status).toBe(400);
+    expect(typeof res.body.error).toBe('string');
+  });
+
+  test('POST /tasks normalises the course code', async () => {
+    const res = await request(app).post('/tasks').send({ title: 'Task', course: 'comp2521' });
+    expect(res.status).toBe(201);
+    expect(res.body.course).toBe('COMP2521');
+  });
+
+  test('PATCH /tasks/:id with null removes the due date from the response', async () => {
+    await request(app).post('/tasks').send({ title: 'Task', dueDate: '2026-11-20' });
+    const res = await request(app).patch('/tasks/1').send({ dueDate: null });
+    expect(res.status).toBe(200);
+    expect(res.body).not.toHaveProperty('dueDate');
+  });
+});

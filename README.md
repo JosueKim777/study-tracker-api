@@ -46,10 +46,11 @@ A task looks like:
 ### Validation rules
 
 - `title`: required on create, a non-empty string of at most 100 characters
-- `dueDate`: optional, a real calendar date in `YYYY-MM-DD` format
+- `dueDate`: optional, a real calendar date in `YYYY-MM-DD` format (`2026-02-30` and `2026-02-29` are rejected, `2028-02-29` is accepted)
+- `course`: optional, a non-empty string of at most 20 characters, stored trimmed and upper-cased (`comp2521` becomes `COMP2521`)
 - `status`: one of the three values above; new tasks start as `todo`
 - `GET /tasks` returns tasks sorted by `dueDate` (tasks without one go last)
-- `PATCH /tasks/:id` accepts any subset of `title`, `course`, `dueDate`, `status`. All fields are validated before any change is applied, so an invalid field leaves the task untouched
+- `PATCH /tasks/:id` accepts any subset of `title`, `course`, `dueDate`, `status`. All fields are validated before any change is applied, so an invalid field leaves the task untouched. Sending `null` for `course` or `dueDate` removes that field
 
 ## Testing
 
