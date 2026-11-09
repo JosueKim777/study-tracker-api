@@ -10,17 +10,17 @@ export interface Task {
   dueDate?: string;
 }
 
-// 内部状态，外部无法直接修改（封装）
+// Internal state, encapsulated to prevent direct external modification
 let tasks: Task[] = [];
 let nextId = 1;
 
-// 在 Jest 每个测试用例开始前重置状态
+// Reset state before each Jest test case
 export function clearTasks(): void {
   tasks = [];
   nextId = 1;
 }
 
-// 创建任务
+// Create a new task
 export function createTask(title: unknown, course?: string, dueDate?: string): Task {
   if (typeof title !== 'string' || title.trim() === '') {
     throw new Error('Title is required and must be a string');
@@ -35,7 +35,7 @@ export function createTask(title: unknown, course?: string, dueDate?: string): T
     id: nextId++,
     title: trimmedTitle,
     course,
-    status: 'todo', // 新建任务默认状态为 todo
+    status: 'todo', // Default status for new tasks is todo
     dueDate
   };
 
