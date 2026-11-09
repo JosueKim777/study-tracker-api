@@ -122,3 +122,37 @@ describe('DELETE /tasks/:id', () => {
     expect(resInvalid.status).toBe(400);
   });
 });
+
+describe('PATCH /tasks/:id', () => {
+  beforeEach(async () => {
+    await request(app).post('/tasks').send({ title: 'Task 1' });
+  });
+
+  test('returns 200 with the updated task', async () => {
+    const res = await request(app).patch('/tasks/1').send({ status: 'done' });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ id: 1, title: 'Task 1', status: 'done' });
+
+    const resGet = await request(app).get('/tasks/1');
+    expect(resGet.body.status).toBe('done');
+  });
+
+  test('returns 400 for an invalid status or empty body', async () => {
+    for (const body of [{ status: 'finished' }, {}]) {
+      const res = await request(app).patch('/tasks/1').send(body);
+      expect(res.status).toBe(400);
+      expect(typeof res.body.error).toBe('string');
+    }
+  });
+
+  test('returns 404 for a missing task', async () => {
+    const res = await request(app).patch('/tasks/999').send({ title: 'x' });
+    expect(res.status).toBe(404);
+    expect(typeof res.body.error).toBe('string');
+  });
+
+  test('returns 400 for an invalid id', async () => {
+    const res = await request(app).patch('/tasks/abc').send({ title: 'x' });
+    expect(res.status).toBe(400);
+  });
+});

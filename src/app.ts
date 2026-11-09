@@ -1,7 +1,7 @@
 // src/app.ts
 
 import express, { Request, Response, NextFunction } from 'express';
-import { createTask, listTasks, getTask, deleteTask } from './tasks';
+import { createTask, listTasks, getTask, deleteTask, updateTask } from './tasks';
 import { ValidationError, NotFoundError } from './errors';
 
 // app.ts is only responsible for creating the app, not for listening to ports.
@@ -45,6 +45,13 @@ app.get('/tasks/:id', (req: Request, res: Response) => {
 });
 
 // DELETE /tasks/:id route
+// PATCH /tasks/:id route
+app.patch('/tasks/:id', (req: Request, res: Response) => {
+  const idNum = parseId(req.params.id);
+  const task = updateTask(idNum, req.body);
+  res.status(200).json(task);
+});
+
 app.delete('/tasks/:id', (req: Request, res: Response) => {
   const idNum = parseId(req.params.id);
   deleteTask(idNum);

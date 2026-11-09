@@ -49,6 +49,7 @@ A task looks like:
 - `dueDate`: optional, a real calendar date in `YYYY-MM-DD` format
 - `status`: one of the three values above; new tasks start as `todo`
 - `GET /tasks` returns tasks sorted by `dueDate` (tasks without one go last)
+- `PATCH /tasks/:id` accepts any subset of `title`, `course`, `dueDate`, `status`. All fields are validated before any change is applied, so an invalid field leaves the task untouched
 
 ## Testing
 

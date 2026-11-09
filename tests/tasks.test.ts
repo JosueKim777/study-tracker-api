@@ -1,6 +1,6 @@
 // tests/tasks.test.ts
 
-import { createTask, clearTasks, listTasks, getTask, deleteTask } from '../src/tasks';
+import { createTask, clearTasks, listTasks, getTask, deleteTask, updateTask } from '../src/tasks';
 import { ValidationError, NotFoundError } from '../src/errors';
 
 describe('Tasks Core Logic', () => {
@@ -92,5 +92,78 @@ describe('Tasks Core Logic', () => {
     expect(() => getTask(1)).toThrow(NotFoundError);
 
     expect(() => deleteTask(999)).toThrow(NotFoundError);
+  });
+});
+
+describe('updateTask', () => {
+  beforeEach(() => {
+    clearTasks();
+    createTask('Original title', 'COMP2521', '2026-11-20');
+  });
+
+  test('updates only the title and leaves other fields unchanged', () => {
+    const updated = updateTask(1, { title: '  New title  ' });
+    expect(updated).toEqual({
+      id: 1,
+      title: 'New title',
+      course: 'COMP2521',
+      status: 'todo',
+      dueDate: '2026-11-20',
+    });
+  });
+
+  test('updates status to each valid value', () => {
+    expect(updateTask(1, { status: 'in_progress' }).status).toBe('in_progress');
+    expect(updateTask(1, { status: 'done' }).status).toBe('done');
+    expect(updateTask(1, { status: 'todo' }).status).toBe('todo');
+  });
+
+  test('updates course and dueDate', () => {
+    const updated = updateTask(1, { course: 'MATH1081', dueDate: '2026-12-01' });
+    expect(updated.course).toBe('MATH1081');
+    expect(updated.dueDate).toBe('2026-12-01');
+  });
+
+  test('changes are persisted, not just returned', () => {
+    updateTask(1, { status: 'done' });
+    expect(getTask(1).status).toBe('done');
+  });
+
+  test('throws ValidationError for an invalid status', () => {
+    expect(() => updateTask(1, { status: 'finished' })).toThrow(ValidationError);
+    expect(() => updateTask(1, { status: 'DONE' })).toThrow(ValidationError);
+  });
+
+  test('applies the same title rules as createTask', () => {
+    expect(() => updateTask(1, { title: '' })).toThrow(ValidationError);
+    expect(() => updateTask(1, { title: 'a'.repeat(101) })).toThrow(ValidationError);
+    expect(updateTask(1, { title: 'a'.repeat(100) }).title).toBe('a'.repeat(100));
+  });
+
+  test('throws ValidationError for non-string course or dueDate', () => {
+    expect(() => updateTask(1, { course: 123 })).toThrow(ValidationError);
+    expect(() => updateTask(1, { dueDate: true })).toThrow(ValidationError);
+  });
+
+  test('throws ValidationError when there is nothing to update', () => {
+    expect(() => updateTask(1, {})).toThrow(ValidationError);
+    expect(() => updateTask(1, { unknownField: 'x' })).toThrow(ValidationError);
+    expect(() => updateTask(1, null)).toThrow(ValidationError);
+    expect(() => updateTask(1, ['title'])).toThrow(ValidationError);
+  });
+
+  test('throws NotFoundError for a missing task', () => {
+    expect(() => updateTask(999, { title: 'x' })).toThrow(NotFoundError);
+  });
+
+  test('is atomic: one invalid field means nothing is changed', () => {
+    expect(() => updateTask(1, { title: 'New title', status: 'wrong' })).toThrow(ValidationError);
+    expect(getTask(1)).toEqual({
+      id: 1,
+      title: 'Original title',
+      course: 'COMP2521',
+      status: 'todo',
+      dueDate: '2026-11-20',
+    });
   });
 });
