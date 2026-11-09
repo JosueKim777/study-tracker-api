@@ -31,9 +31,10 @@ app.post('/tasks', (req: Request, res: Response) => {
   res.status(201).json(task);
 });
 
-// GET /tasks route
-app.get('/tasks', (_req: Request, res: Response) => {
-  const tasks = listTasks();
+// GET /tasks route (with query filtering and sorting support)
+app.get('/tasks', (req: Request, res: Response) => {
+  const { status, course } = req.query;
+  const tasks = listTasks({ status, course });
   res.status(200).json(tasks);
 });
 

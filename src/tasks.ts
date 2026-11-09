@@ -100,9 +100,39 @@ export function createTask(title: unknown, course?: unknown, dueDate?: unknown):
   return { ...newTask };
 }
 
-// Return a copy of each task (a shallow copy is enough because every field is a primitive) to maintain strict encapsulation
-export function listTasks(): Task[] {
-  return tasks.map(t => ({ ...t }));
+export interface TaskFilters {
+  status?: unknown;
+  course?: unknown;
+}
+
+export function listTasks(filters?: TaskFilters): Task[] {
+  let result = tasks.map(t => ({ ...t }));
+
+  if (filters) {
+    if (filters.status !== undefined) {
+      if (!isTaskStatus(filters.status)) {
+        throw new ValidationError('Invalid status filter');
+      }
+      result = result.filter(t => t.status === filters.status);
+    }
+
+    if (filters.course !== undefined) {
+      if (typeof filters.course !== 'string') {
+        throw new ValidationError('Course filter must be a string');
+      }
+      const normalisedQuery = filters.course.trim().toUpperCase();
+      result = result.filter(t => t.course === normalisedQuery);
+    }
+  }
+
+  result.sort((a, b) => {
+    if (!a.dueDate && !b.dueDate) return 0;
+    if (!a.dueDate) return 1;
+    if (!b.dueDate) return -1;
+    return a.dueDate.localeCompare(b.dueDate);
+  });
+
+  return result;
 }
 
 // Find and return a task copy by its ID

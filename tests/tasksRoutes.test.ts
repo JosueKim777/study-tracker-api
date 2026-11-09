@@ -183,3 +183,74 @@ describe('dueDate and course validation over HTTP', () => {
     expect(res.body).not.toHaveProperty('dueDate');
   });
 });
+
+describe('GET /tasks with filtering and sorting', () => {
+  beforeEach(async () => {
+    // Seed tasks with various statuses, courses, and due dates
+    await request(app).post('/tasks').send({ title: 'Task A', course: 'COMP2521', dueDate: '2026-11-25' });
+    await request(app).post('/tasks').send({ title: 'Task B', course: 'COMP1531', dueDate: '2026-11-20' });
+    await request(app).post('/tasks').send({ title: 'Task C', course: 'COMP2521' }); // no dueDate
+    
+    // Set Task B to 'in_progress' and Task A to 'done'
+    await request(app).patch('/tasks/2').send({ status: 'in_progress' });
+    await request(app).patch('/tasks/1').send({ status: 'done' });
+  });
+
+  test('Should filter by status and course (case-insensitive)', async () => {
+    // Filter by status=done
+    const resStatus = await request(app).get('/tasks?status=done');
+    expect(resStatus.status).toBe(200);
+    expect(resStatus.body.length).toBe(1);
+    expect(resStatus.body[0].title).toBe('Task A');
+
+    // Filter by lowercase course query (comp2521 -> COMP2521)
+    const resCourse = await request(app).get('/tasks?course=comp2521');
+    expect(resCourse.status).toBe(200);
+    expect(resCourse.body.length).toBe(2); // Task A and Task C
+
+    // Combine filters
+    const resBoth = await request(app).get('/tasks?status=done&course=comp2521');
+    expect(resBoth.status).toBe(200);
+    expect(resBoth.body.length).toBe(1);
+    expect(resBoth.body[0].title).toBe('Task A');
+  });
+
+  test('Should return 400 for invalid status filter', async () => {
+    const response = await request(app).get('/tasks?status=invalid_status');
+    expect(response.status).toBe(400);
+    expect(typeof response.body.error).toBe('string');
+  });
+
+  test('Should sort by dueDate ascending with missing dates at the end', async () => {
+    const response = await request(app).get('/tasks');
+    expect(response.status).toBe(200);
+    expect(response.body.length).toBe(3);
+    
+    // Earliest dueDate first: Task B (2026-11-20), then Task A (2026-11-25), then Task C (no dueDate)
+    expect(response.body[0].title).toBe('Task B');
+    expect(response.body[1].title).toBe('Task A');
+    expect(response.body[2].title).toBe('Task C');
+  });
+
+  test('Should return 400 when course is given twice (req.query turns it into an array)', async () => {
+    const response = await request(app).get('/tasks?course=COMP2521&course=COMP1531');
+    expect(response.status).toBe(400);
+    expect(typeof response.body.error).toBe('string');
+  });
+
+  test('Should keep every task without a dueDate after the dated ones', async () => {
+    // Task C already has no dueDate; add a second one so the sort has to compare two missing dates
+    await request(app).post('/tasks').send({ title: 'Task D' });
+
+    const response = await request(app).get('/tasks');
+    const titles = response.body.map((t: { title: string }) => t.title);
+    expect(titles.slice(0, 2)).toEqual(['Task B', 'Task A']);
+    expect(titles.slice(2).sort()).toEqual(['Task C', 'Task D']);
+  });
+
+  test('Should return empty array when no tasks match filter', async () => {
+    const response = await request(app).get('/tasks?course=MATH1081');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([]);
+  });
+});

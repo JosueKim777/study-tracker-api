@@ -230,3 +230,15 @@ describe('course validation', () => {
     expect(updateTask(1, { course: null }).course).toBeUndefined();
   });
 });
+
+describe('listTasks sorting', () => {
+  beforeEach(() => {
+    clearTasks();
+  });
+
+  test('moves a dated task ahead of an undated task that was created first', () => {
+    createTask('No date');
+    createTask('Has date', undefined, '2026-11-20');
+    expect(listTasks().map(t => t.title)).toEqual(['Has date', 'No date']);
+  });
+});
