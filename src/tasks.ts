@@ -10,6 +10,7 @@ export interface Task {
   course?: string;
   status: TaskStatus;
   dueDate?: string;
+  flagged?: boolean; // true when content moderation marked the title as suspicious
 }
 
 // Internal state, encapsulated to prevent direct external modification
@@ -25,8 +26,9 @@ export function clearTasks(): void {
 const VALID_STATUSES: TaskStatus[] = ['todo', 'in_progress', 'done'];
 const MAX_TITLE_LENGTH = 100;
 
-// Shared by createTask and updateTask so both apply exactly the same title rules
-function validateTitle(title: unknown): string {
+// Shared by createTask and updateTask so both apply exactly the same title rules.
+// Exported so routes can validate a title before sending it to content moderation.
+export function validateTitle(title: unknown): string {
   if (typeof title !== 'string' || title.trim() === '') {
     throw new ValidationError('Title is required and must be a string');
   }
@@ -83,7 +85,12 @@ function validateDueDate(dueDate: unknown): string {
 }
 
 // Create a new task. Optional fields are only validated when they are provided.
-export function createTask(title: unknown, course?: unknown, dueDate?: unknown): Task {
+export function createTask(
+  title: unknown,
+  course?: unknown,
+  dueDate?: unknown,
+  flagged = false
+): Task {
   const trimmedTitle = validateTitle(title);
   const validCourse = course === undefined ? undefined : validateCourse(course);
   const validDueDate = dueDate === undefined ? undefined : validateDueDate(dueDate);
@@ -93,7 +100,8 @@ export function createTask(title: unknown, course?: unknown, dueDate?: unknown):
     title: trimmedTitle,
     course: validCourse,
     status: 'todo', // Default status for new tasks is todo
-    dueDate: validDueDate
+    dueDate: validDueDate,
+    flagged: flagged || undefined // only stored when true, so normal tasks look unchanged
   };
 
   tasks.push(newTask);
@@ -155,7 +163,8 @@ export function deleteTask(id: number): void {
 
 // Partially update a task. Every field is validated before anything is changed,
 // so a request with one invalid field leaves the task completely untouched (atomic).
-export function updateTask(id: number, updates: unknown): Task {
+// `flagged` is decided by the route after moderating a new title; undefined means "leave as is".
+export function updateTask(id: number, updates: unknown, flagged?: boolean): Task {
   const task = tasks.find(t => t.id === id);
   if (!task) {
     throw new NotFoundError('Task not found');
@@ -186,6 +195,10 @@ export function updateTask(id: number, updates: unknown): Task {
 
   if (Object.keys(changes).length === 0) {
     throw new ValidationError('No valid fields to update');
+  }
+
+  if (flagged !== undefined) {
+    changes.flagged = flagged || undefined;
   }
 
   // Only reached when every field passed validation
